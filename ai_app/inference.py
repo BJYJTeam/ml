@@ -8,21 +8,38 @@ API_URL = "http://hanyang-datascience.duckdns.org:5005/run"
 API_TOKEN = "z8y7x6w5v4.n1m2l3k4j5.Team4"
 
 # 데이터 로드
-df = pd.read_csv("qa_data.csv")
-df["Question"] = df["Question"].fillna("")
-questions = df["Question"].tolist()
+df = pd.read_csv("qa_DB_tag_json.csv")
+df = df[df['content'].notna()]  # content 없는 경우 제외
+df = df[~df['content'].str.lower().str.contains('content not found')]  # 비밀글 제외
+df["title"] = df["title"].fillna("")  # title NaN 방지
+
+questions = df["title"].tolist()
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 question_embeddings = model.encode(questions, convert_to_tensor=True)
 
+# API 요청 함수
 def generate_gemma_answer(prompt: str) -> str:
-    response = requests.post(API_URL, json={
-        "token": API_TOKEN,
-        "prompt": prompt,
-    })
+    headers = {
+        'Authorization': API_TOKEN,
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'model': 'gemma3:12b',
+        'messages': [
+            {
+                'role': 'user',
+                'content': prompt
+            }
+        ]
+    }
+
+    response = requests.post(API_URL, headers=headers, json=data)
+
     if response.ok:
-        return response.json().get("result", "")
-    return "[Error in response]"
+        return response.json().get('response', '[응답 없음]')
+    else:
+        return f"[Error {response.status_code}] {response.text}"
 
 def ai_answer(title, content, similar_questions):
     """
@@ -71,3 +88,11 @@ def find_similar_questions(title, content, top_n=5):
     similarities = cosine_similarity(query_vec, question_embeddings)[0]
     top_indices = np.argsort(similarities)[::-1][:top_n]
     return df.iloc[top_indices][["Question", "Question Link", "Answer"]].to_dict(orient="records")
+
+
+# test_api.py (예시 파일로 저장)
+def test_api():
+    result = generate_gemma_answer("척추측만증에 대해 설명해줘")
+    print("API 응답:", result)
+
+test_api()
