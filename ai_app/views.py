@@ -134,3 +134,47 @@ def similar_questions(request):
     if "error" in results:
         return Response(results, status=500)
     return Response({"similar_questions": results})
+
+
+# 추천 이미지 API
+@swagger_auto_schema(
+    method='post',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=["content"],
+        properties={
+            "content": openapi.Schema(type=openapi.TYPE_STRING, description="질문 내용"),
+        },
+        example={
+            "content": "청소년의 척추측만증 보조기 치료에 대해 알고 싶어요."
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="추천 이미지 리스트",
+            examples={
+                "application/json": {
+                    "results": [
+                        {
+                            "id": "scoliosis-xray-1",
+                            "title": "청소년 척추측만증 X-ray",
+                            "description": "15세 환자의 25도 콥스 각도 척추측만증 X-ray",
+                            "url": "https://cdn.com/image1.jpg",
+                            "score": 0.91
+                        }
+                    ]
+                }
+            }
+        )
+    }
+)
+@api_view(['POST'])
+def recommend_images(request):
+    content = request.data.get("content", "")
+    if not content:
+        return Response({"error": "content is required"}, status=400)
+
+    from .inference import recommend_images_by_question
+    results = recommend_images_by_question(content)
+    return Response({"results": results})
+

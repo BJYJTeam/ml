@@ -96,3 +96,25 @@ def test_api():
     print("API 응답:", result)
 
 test_api()
+
+
+
+# --- Image Recommendation Based on Similarity ---
+import json
+import os
+
+# Load precomputed image metadata
+with open("medical_metadata.json", "r") as f:
+    image_metadata = json.load(f)
+
+image_descriptions = [item["description"] for item in image_metadata]
+image_embeddings = model.encode(image_descriptions, convert_to_tensor=True).cpu()
+
+def recommend_images_by_question(content, top_k=5):
+    """
+    질문 본문을 기반으로 가장 유사한 이미지 추천
+    """
+    query_embedding = model.encode([content], convert_to_tensor=True).cpu()
+    similarities = cosine_similarity(query_embedding, image_embeddings)[0]
+    top_indices = similarities.argsort()[::-1][:top_k]
+    return [image_metadata[i] for i in top_indices]
