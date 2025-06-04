@@ -95,7 +95,7 @@ def test_api():
     result = generate_gemma_answer("척추측만증에 대해 설명해줘")
     print("API 응답:", result)
 
-test_api()
+# test_api()
 
 
 
