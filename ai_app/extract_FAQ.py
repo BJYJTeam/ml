@@ -7,8 +7,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 import hdbscan
 from collections import Counter
 
-# input : post_id, title, content,
-# output : FAQ_id, question, answer, category
+# input : {title, content, {author가 "doctor"인 댓글들}}
+# output : FAQ_id, question, answer
 
 # ------------------------------
 # 1. 데이터 로드 및 전처리
