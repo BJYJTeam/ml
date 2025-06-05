@@ -4,6 +4,11 @@ import pandas as pd
 import json
 import requests
 
+# input for ai_answer : post_id, title, content
+# input for doctor_answer : post_id, title, content, {comment_id: content, created_at, author}
+
+# output : post_id, content(comment_content), author, {similar_question_post_id}
+
 ### [1] 파일 불러오기
 questions_df = pd.read_csv("qa_DB_tag_json.csv")
 with open("post_comments.json", "r", encoding="utf-8") as f:
@@ -51,16 +56,16 @@ for i in range(3):  # ✅ 여기만 바뀜
     title = question['title']
     content = question['content']
     post_id = question['id']
-    
+
     similar_idxs = find_similar_posts(i)
     context = f"[질문 제목]: {title}\n[질문 내용]: {content}\n\n"
     context += "[유사 질문 및 전문의 답변 참고]\n"
-    
+
     for idx in similar_idxs:
         sim_q = questions_df.iloc[idx]
         sim_post_id = sim_q['id']
         context += f"\nQ: {sim_q['title']}\nA: {doctor_answers_by_post_id.get(sim_post_id, ['(답변 없음)'])[0]}"
-    
+
     prompt = f"""당신은 "온누리마취통증의학과의원"에서 근무 중인 AI 인턴입니다.  
             해당 병원은 마취통증의학과이며, 특히 측만증, 허리 통증, 자세 관련 치료에 전문성을 갖추고 있습니다.
 
@@ -120,8 +125,7 @@ for i in range(3):  # ✅ 여기만 바뀜
         "ai_draft": ai_draft
     })
 
-    print(f"[{i+1}/3] 완료: {title}")
-
+    print(f"[{i + 1}/3] 완료: {title}")
 
 ### [7] 결과 저장
 pd.DataFrame(drafts).to_csv("ai_draft_answers.csv", index=False, encoding='utf-8-sig')

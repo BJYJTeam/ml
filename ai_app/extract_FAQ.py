@@ -7,10 +7,13 @@ from sklearn.metrics.pairwise import cosine_similarity
 import hdbscan
 from collections import Counter
 
+# input : post_id, title, content,
+# output : FAQ_id, question, answer, category
+
 # ------------------------------
 # 1. 데이터 로드 및 전처리
 # ------------------------------
-df = pd.read_csv("./qa_DB_tag_json.csv")
+df = pd.read_csv("docs/qa_DB_tag_json.csv")
 
 df = df[df['content'].notna()]
 df = df[~df['content'].str.lower().str.contains('content not found')].copy()

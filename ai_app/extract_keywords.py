@@ -3,6 +3,10 @@ import requests
 import pandas as pd
 from tqdm import tqdm
 
+# input : post_id, title, content
+# output : post_id, {keywords}
+
+
 API_URL = "http://hanyang-datascience.duckdns.org:5005/run"
 API_TOKEN = "z8y7x6w5v4.n1m2l3k4j5.Team4"
 HEADERS = {
@@ -44,7 +48,7 @@ PROMPT = """다음은 마취통증의학과 병원에 올라온 환자 또는 �
 """
 
 def generate_keywords_with_gemma(title, content):
-    prompt = PROMPT.format(title=title, question=content)
+    prompt = PROMPT.format(title=title, content=content)
     data = {
         'model': 'gemma3:12b',
         'messages': [{'role': 'user', 'content': prompt}]

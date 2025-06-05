@@ -99,7 +99,7 @@ def extract_keywords(request):
     return Response({"keywords": extract_keywords_from_model(text)})
 
 # faq
-# param postId, title, content, tag
+# param postId, content, answer, tag
 # return list로 (title, content, category) 
 @api_view(['GET'])
 def faqs(request):
