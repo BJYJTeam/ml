@@ -5,7 +5,7 @@ import json
 import requests
 
 # input for ai_answer : post_id, title, content
-# input for doctor_answer : post_id, title, content, {comment_id: content, created_at, author}
+# input for doctor_answer : post_id, title, content, {comment_id, content, created_at, author}
 
 # output : post_id, content(comment_content), author, {similar_question_post_id}
 
