@@ -5,7 +5,7 @@ from .views import (
     keyword_extraction_view,
     faq_list_view,
     similar_posts_api,
-    recommend_images
+    recommend_images,
 )
 
 urlpatterns = [
@@ -13,6 +13,6 @@ urlpatterns = [
     path('api/doctor-draft/', doctor_draft_view, name='doctor-draft'),
     path('api/extract-keywords/', keyword_extraction_view, name='extract-keywords'),
     path('api/faqs/', faq_list_view, name='faq-list'),
-    path('api/similar-questions/', similar_posts_api, name='similar-questions'),
+    path('api/similar-posts/', similar_posts_api, name='similar-posts'),
     path('api/recommend-images/', recommend_images, name='recommend-images'),
 ]

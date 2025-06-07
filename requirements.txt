@@ -71,7 +71,7 @@ multidict==6.4.3
 mysqlclient==2.2.0
 nest-asyncio==1.6.0
 networkx==2.6.1
-numpy==2.0.2
+numpy==1.26.4
 omegaconf==2.3.0
 optuna==4.3.0
 packaging==25.0

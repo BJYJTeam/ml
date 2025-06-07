@@ -278,7 +278,7 @@ def extract_keywords(post_id: int, title: str, content: str) -> Dict:
 
 
 # --- Image Recommendation ---
-with open("medical_metadata.json", "r") as f:
+with open("docs/medical_metadata.json", "r") as f:
     image_metadata = json.load(f)
 
 image_descriptions = [item["description"] for item in image_metadata]

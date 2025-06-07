@@ -16,20 +16,30 @@ from .inference import (
 
 @swagger_auto_schema(
     method='get',
+    operation_summary="유사 질문 ID 조회",
     manual_parameters=[
         openapi.Parameter('post_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
         openapi.Parameter('title', openapi.IN_QUERY, type=openapi.TYPE_STRING),
         openapi.Parameter('content', openapi.IN_QUERY, type=openapi.TYPE_STRING),
     ],
     responses={
-        200: openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'post_id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                'similar_post_ids': openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(type=openapi.TYPE_INTEGER)
-                )
+        200: openapi.Response(
+            description='유사 질문 ID 리스트',
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'post_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'similar_post_ids': openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_INTEGER)
+                    )
+                }
+            ),
+            examples={
+                "application/json": {
+                    "post_id": 123,
+                    "similar_post_ids": [101, 102, 103]
+                }
             }
         )
     }
