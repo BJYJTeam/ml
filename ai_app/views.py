@@ -1,5 +1,3 @@
-# ai_app/views.py
-
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
@@ -18,7 +16,7 @@ from .inference import (
     method='get',
     operation_summary="유사 질문 ID 조회",
     manual_parameters=[
-        openapi.Parameter('post_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+        openapi.Parameter('post_id', openapi.IN_QUERY, type=openapi.TYPE_STRING),
         openapi.Parameter('title', openapi.IN_QUERY, type=openapi.TYPE_STRING),
         openapi.Parameter('content', openapi.IN_QUERY, type=openapi.TYPE_STRING),
     ],
@@ -28,17 +26,20 @@ from .inference import (
             schema=openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
-                    'post_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'post_id': openapi.Schema(type=openapi.TYPE_STRING),
                     'similar_post_ids': openapi.Schema(
                         type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_INTEGER)
+                        items=openapi.Schema(type=openapi.TYPE_STRING)
                     )
                 }
             ),
             examples={
                 "application/json": {
-                    "post_id": 123,
-                    "similar_post_ids": [101, 102, 103]
+                    "post_id": "c47b9e89-8ac5-4ff4-aedb-0bd4d0ccadf4",
+                    "similar_post_ids": [
+                        "1e2d7b90-99e1-4e60-b754-5a5a54f5073a",
+                        "3cdd2104-6fd6-4fd8-bf8e-c12ed1c939ed"
+                    ]
                 }
             }
         )
@@ -46,11 +47,11 @@ from .inference import (
 )
 @api_view(['GET'])
 def similar_posts_api(request):
-    post_id = int(request.GET.get("post_id"))
+    post_id = request.GET.get("post_id")
     title = request.GET.get("title", "")
     content = request.GET.get("content", "")
 
-    similar_ids = find_similar_posts(post_id, title, content)
+    similar_ids = find_similar_posts(title, content)
     return Response({
         "post_id": post_id,
         "similar_post_ids": similar_ids
@@ -64,7 +65,7 @@ def similar_posts_api(request):
         type=openapi.TYPE_OBJECT,
         required=['post_id', 'title', 'content'],
         properties={
-            'post_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'post_id': openapi.Schema(type=openapi.TYPE_STRING),
             'title': openapi.Schema(type=openapi.TYPE_STRING),
             'content': openapi.Schema(type=openapi.TYPE_STRING)
         }
@@ -72,7 +73,7 @@ def similar_posts_api(request):
     responses={200: openapi.Response('AI 답변', schema=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
-            'post_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'post_id': openapi.Schema(type=openapi.TYPE_STRING),
             'content': openapi.Schema(type=openapi.TYPE_STRING)
         }
     ))}
@@ -91,7 +92,7 @@ def ai_answer_view(request):
         type=openapi.TYPE_OBJECT,
         required=['post_id', 'title', 'content', 'comments'],
         properties={
-            'post_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'post_id': openapi.Schema(type=openapi.TYPE_STRING),
             'title': openapi.Schema(type=openapi.TYPE_STRING),
             'content': openapi.Schema(type=openapi.TYPE_STRING),
             'comments': openapi.Schema(
@@ -110,7 +111,7 @@ def ai_answer_view(request):
     responses={200: openapi.Response('의사 초안 답변', schema=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
-            'post_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'post_id': openapi.Schema(type=openapi.TYPE_STRING),
             'content': openapi.Schema(type=openapi.TYPE_STRING)
         }
     ))}
@@ -121,7 +122,7 @@ def doctor_draft_view(request):
     post_id = data['post_id']
     title = data['title']
     content = data['content']
-    comments = data['comments']  # List[Dict[str, str]]
+    comments = data['comments']
     result = generate_doctor_draft(post_id, title, content, comments)
     return Response(result)
 
@@ -133,7 +134,7 @@ def doctor_draft_view(request):
         type=openapi.TYPE_OBJECT,
         required=['post_id', 'title', 'content'],
         properties={
-            'post_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'post_id': openapi.Schema(type=openapi.TYPE_STRING),
             'title': openapi.Schema(type=openapi.TYPE_STRING),
             'content': openapi.Schema(type=openapi.TYPE_STRING)
         }
@@ -141,7 +142,7 @@ def doctor_draft_view(request):
     responses={200: openapi.Response('키워드 추출 결과', schema=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         properties={
-            'post_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'post_id': openapi.Schema(type=openapi.TYPE_STRING),
             'tag': openapi.Schema(
                 type=openapi.TYPE_ARRAY,
                 items=openapi.Schema(type=openapi.TYPE_STRING)
@@ -176,9 +177,9 @@ def faq_list_view(request):
     return Response(faqs)
 
 
-# 추천 이미지 API
 @swagger_auto_schema(
     method='post',
+    operation_summary="추천 이미지 제공",
     request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
         required=["content"],

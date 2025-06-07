@@ -1,5 +1,3 @@
-#ai_app/inference.py
-
 import json
 from typing import Dict, List
 import numpy as np
@@ -23,6 +21,7 @@ def load_qa_dataframe() -> pd.DataFrame:
     df = pd.read_csv("docs/qa_DB_tag_json.csv")
     df = df[df['content'].notna() & ~df['content'].str.lower().str.contains('content not found')]
     df["title"] = df["title"].fillna("")
+    df["id"] = df["id"].astype(str)
     return df
 
 
@@ -31,14 +30,14 @@ question_embeddings = model.encode(questions_df["title"].tolist(), convert_to_te
 
 
 # --- Load Doctor Comments ---
-def load_doctor_comments() -> Dict[int, List[str]]:
+def load_doctor_comments() -> Dict[str, List[str]]:
     with open("docs/post_comments.json", "r", encoding="utf-8") as f:
         comments = json.load(f)
 
     answers = {}
     for c in comments:
         if c["author"].lower() == "doctor":
-            answers.setdefault(c["post_id"], []).append(c["content"])
+            answers.setdefault(str(c["post_id"]), []).append(c["content"])
     return answers
 
 
@@ -61,7 +60,7 @@ def generate_gemma_answer(prompt: str) -> str:
 
 
 # --- Find Similar Posts ---
-def find_similar_posts(post_id: int, title: str, content: str, top_n: int = 3) -> List[int]:
+def find_similar_posts(title: str, content: str, top_n: int = 3) -> List[str]:
     query = f"{title}\n{content}"
     query_embedding = model.encode([query], convert_to_tensor=True)
     cosine_scores = util.cos_sim(query_embedding, question_embeddings)[0]
@@ -70,8 +69,8 @@ def find_similar_posts(post_id: int, title: str, content: str, top_n: int = 3) -
 
 
 # --- AI Intern Answer Generation ---
-def generate_ai_intern_answer(post_id: int, title: str, content: str) -> Dict:
-    similar_ids = find_similar_posts(post_id, title, content)
+def generate_ai_intern_answer(post_id: str, title: str, content: str) -> Dict:
+    similar_ids = find_similar_posts(title, content)
     context = f"[질문 제목]: {title}\n[질문 내용]: {content}\n\n[유사 질문 및 전문의 답변 참고]\n"
     for sid in similar_ids:
         row = questions_df[questions_df['id'] == sid].iloc[0]
@@ -97,25 +96,8 @@ def generate_ai_intern_answer(post_id: int, title: str, content: str) -> Dict:
 
 
 # --- Doctor Draft Answer ---
-def generate_doctor_draft(
-        post_id: int,
-        title: str,
-        content: str,
-        comments: List[Dict[str, str]]
-) -> Dict:
-    """
-    여러 개의 댓글을 받아 원장님의 답변 초안을 생성합니다.
-
-    Parameters:
-        - post_id: 질문 글 ID
-        - title: 질문 제목
-        - content: 질문 본문
-        - comments: [{comment_content: str, comment_author: str}, ...]
-
-    Returns:
-        - {'post_id': int, 'content': str}
-    """
-    similar_ids = find_similar_posts(post_id, title, content)
+def generate_doctor_draft(post_id: str, title: str, content: str, comments: List[Dict[str, str]]) -> Dict:
+    similar_ids = find_similar_posts(title, content)
 
     context = f"질문:\n{title} {content}\n\n"
     for c in comments:
@@ -146,7 +128,6 @@ def generate_doctor_draft(
 {context}"""
 
     return {"post_id": post_id, "content": generate_gemma_answer(prompt).strip()}
-
 
 
 # --- FAQ Generation ---
@@ -245,7 +226,7 @@ A: 답변 내용"""
 
 
 # --- Keyword Extraction ---
-def extract_keywords(post_id: int, title: str, content: str) -> Dict:
+def extract_keywords(post_id: str, title: str, content: str) -> Dict:
     prompt = f"""다음은 마취통증의학과 병원에 올라온 환자 또는 보호자의 질문입니다.  
 질문 내용을 바탕으로 다음 조건에 따라 의학적으로 중요한 핵심 키워드만 추출하세요.
 
