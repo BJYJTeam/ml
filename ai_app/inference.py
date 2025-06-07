@@ -61,10 +61,27 @@ def generate_gemma_answer(prompt: str) -> str:
 
 # --- Find Similar Posts ---
 def find_similar_posts(title: str, content: str, top_n: int = 3) -> List[str]:
-    query = f"{title}\n{content}"
+    """
+    주어진 제목과 본문을 기반으로 가장 유사한 기존 질문 post_id 리스트를 반환합니다.
+
+    Args:
+        title (str): 질문 제목
+        content (str): 질문 본문
+        top_n (int): 반환할 유사 질문 수 (기본값 3)
+
+    Returns:
+        List[str]: 유사도가 높은 질문 ID 리스트
+    """
+    if not title and not content:
+        return []
+
+    query = f"{title.strip()}\n{content.strip()}"
     query_embedding = model.encode([query], convert_to_tensor=True)
+
     cosine_scores = util.cos_sim(query_embedding, question_embeddings)[0]
-    top_indices = cosine_scores.topk(k=top_n)[1].cpu().tolist()
+    top_k = min(top_n, len(questions_df))
+    top_indices = cosine_scores.topk(k=top_k)[1].cpu().tolist()
+
     return questions_df.iloc[top_indices]['id'].tolist()
 
 
@@ -99,17 +116,38 @@ def generate_ai_intern_answer(post_id: str, title: str, content: str) -> Dict:
 def generate_doctor_draft(post_id: str, title: str, content: str, comments: List[Dict[str, str]]) -> Dict:
     similar_ids = find_similar_posts(title, content)
 
-    context = f"질문:\n{title} {content}\n\n"
-    for c in comments:
-        author = c.get("comment_author", "사용자")
-        text = c.get("comment_content", "")
-        context += f"댓글 ({author}):\n{text}\n\n"
+    # 댓글 분류
+    ai_answer = ""
+    user_comments = []
 
-    context += "참고할 기존 Q&A 목록:\n"
+    for c in comments:
+        author = c.get("comment_author", "").strip().lower()
+        text = c.get("comment_content", "").strip()
+        if author == "ai":
+            ai_answer = text
+        else:
+            user_comments.append((author or "사용자", text))
+
+    # 프롬프트 Context 구성
+    context = f"[질문]\n{title}\n{content}\n\n"
+
+    if ai_answer:
+        context += f"[AI 인턴의 기존 답변]\n{ai_answer}\n\n"
+
+    if user_comments:
+        context += "[사용자 댓글]\n"
+        for author, text in user_comments:
+            context += f"({author}) {text}\n"
+
+    # 유사 Q&A 추가
+    context += "\n[참고할 기존 Q&A 목록]"
     for sid in similar_ids:
         row = questions_df[questions_df['id'] == sid].iloc[0]
-        context += f"\nQ: {row['title']}\nA: {doctor_answers_by_post_id.get(sid, ['(답변 없음)'])[0]}"
+        past_q = row['title']
+        past_a = doctor_answers_by_post_id.get(sid, ['(답변 없음)'])[0]
+        context += f"\n\nQ: {past_q}\nA: {past_a}"
 
+    # 최종 프롬프트
     prompt = f"""너는 ‘온누리통증의원’의 김영환 원장이다.
 
 현재 병원 홈페이지 Q&A 게시판에서 AI 인턴이 답변한 질문에 대해 사용자가 추가로 질문하거나 충분하지 않다고 판단해 댓글을 달았다.
@@ -131,7 +169,7 @@ def generate_doctor_draft(post_id: str, title: str, content: str, comments: List
 
 
 # --- FAQ Generation ---
-def generate_faqs_from_db(num_questions: int = 3) -> List[Dict[str, str]]:
+def generate_faqs_from_db() -> List[Dict[str, str]]:
     df = questions_df.copy()
     df['category'] = df['tag'].str.extract(r'\[(.*?)\]')
     df['keyword_raw'] = df['tag'].str.replace(r'\[.*?\]', '', regex=True).str.strip()
@@ -146,6 +184,7 @@ def generate_faqs_from_db(num_questions: int = 3) -> List[Dict[str, str]]:
     }
 
     faq_results = []
+
     for category_name, required_clusters in target_clusters_per_category.items():
         sub_df = df[df['category'] == category_name].copy().reset_index(drop=True)
         if len(sub_df) < 5:
@@ -158,6 +197,7 @@ def generate_faqs_from_db(num_questions: int = 3) -> List[Dict[str, str]]:
 
         min_cluster_size, min_samples = 4, 2
         valid_clusters = []
+
         for _ in range(10):
             clusterer = HDBSCAN(metric='precomputed', min_cluster_size=min_cluster_size, min_samples=min_samples)
             labels = clusterer.fit_predict(cosine_dist)
@@ -168,7 +208,11 @@ def generate_faqs_from_db(num_questions: int = 3) -> List[Dict[str, str]]:
                 break
             min_cluster_size = max(2, min_cluster_size - 1)
 
-        for cluster_id in sorted(valid_clusters, key=lambda x: label_counts[x], reverse=True)[:required_clusters]:
+        used_cluster_count = 0
+        for cluster_id in sorted(valid_clusters, key=lambda x: label_counts[x], reverse=True):
+            if used_cluster_count >= required_clusters:
+                break
+
             cluster_df = sub_df[sub_df['cluster'] == cluster_id].reset_index(drop=True)
             if cluster_df.empty:
                 continue
@@ -179,7 +223,8 @@ def generate_faqs_from_db(num_questions: int = 3) -> List[Dict[str, str]]:
             top_indices = np.argsort(avg_similarities)[-5:][::-1]
 
             questions_text = "\n".join([
-                f"- 제목: {cluster_df.iloc[i]['title']}\n  질문: {cluster_df.iloc[i]['content']}" for i in top_indices
+                f"- 제목: {cluster_df.iloc[i]['title']}\n  질문: {cluster_df.iloc[i]['content']}"
+                for i in top_indices
             ])
 
             representative_row = cluster_df.iloc[top_indices[0]]
@@ -209,6 +254,7 @@ def generate_faqs_from_db(num_questions: int = 3) -> List[Dict[str, str]]:
 [출력 형식]
 Q: 질문 내용
 A: 답변 내용"""
+
             answer = generate_gemma_answer(prompt)
             lines = answer.split('\n')
             q_line = next((line for line in lines if "Q:" in line), "").strip()
@@ -219,8 +265,7 @@ A: 답변 내용"""
                 "answer": a_line.replace("A:", "").strip()
             })
 
-            if len(faq_results) >= num_questions:
-                return faq_results
+            used_cluster_count += 1
 
     return faq_results
 
