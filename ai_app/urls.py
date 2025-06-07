@@ -1,13 +1,18 @@
 from django.urls import path
-from .views import answer, doctor_answer_view, extract_keywords, faqs, similar_questions, recommend_images
-from django.conf import settings
-from django.conf.urls.static import static
+from .views import (
+    ai_answer_view,
+    doctor_draft_view,
+    keyword_extraction_view,
+    faq_list_view,
+    similar_posts_api,
+    recommend_images
+)
 
 urlpatterns = [
-    path('answer', answer),
-    path("doctor-answer", doctor_answer_view),
-    path('extract-keywords', extract_keywords),
-    path('faqs', faqs),
-    path('similar-questions', similar_questions),
-    path("recommend-images/", recommend_images),
+    path('api/ai-answer/', ai_answer_view, name='ai-answer'),
+    path('api/doctor-draft/', doctor_draft_view, name='doctor-draft'),
+    path('api/extract-keywords/', keyword_extraction_view, name='extract-keywords'),
+    path('api/faqs/', faq_list_view, name='faq-list'),
+    path('api/similar-questions/', similar_posts_api, name='similar-questions'),
+    path('api/recommend-images/', recommend_images, name='recommend-images'),
 ]
