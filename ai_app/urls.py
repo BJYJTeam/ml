@@ -14,5 +14,5 @@ urlpatterns = [
     path('api/doctor-draft/', doctor_draft_view, name='doctor-draft'),
     path('api/extract-keywords/', keyword_extraction_view, name='extract-keywords'),
     path('api/faqs/', faq_list_view, name='faq-list'),
-    path('api/recommend-images/', recommend_images, name='recommend-images'),
+    path('recommend-images/', recommend_images, name='recommend-images'),
 ]
