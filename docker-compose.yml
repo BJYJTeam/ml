@@ -8,3 +8,7 @@ services:
       - .:/app 
     environment:
       - PYTHONUNBUFFERED=1
+networks:
+  bjyj_network:
+    name: root_bjyj_network
+    external: true
