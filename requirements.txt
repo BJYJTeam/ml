@@ -74,7 +74,7 @@ networkx==2.6.1
 numpy==1.26.4
 omegaconf==2.3.0
 optuna==4.3.0
-packaging==25.0
+packaging==24.0
 pandas==2.2.3
 parso==0.8.4
 pexpect==4.9.0
