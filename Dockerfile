@@ -1,5 +1,12 @@
 FROM python:3.10-slim
 
+# 필수 시스템 패키지 설치
+RUN apt update && apt install -y \
+    gcc \
+    default-libmysqlclient-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \

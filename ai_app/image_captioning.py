@@ -1,11 +1,9 @@
 from transformers import BlipProcessor, BlipForConditionalGeneration
 from PIL import Image
 import torch
-#import openai
 import os
 from dotenv import load_dotenv
-import json
-#from openai import OpenAI
+
 
 load_dotenv()
 
