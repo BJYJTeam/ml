@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import json
@@ -9,6 +10,9 @@ from collections import Counter
 
 # input : {title, content, {author가 "doctor"인 댓글들}}
 # output : FAQ_id, question, answer
+
+API_URL = os.getenv("API_URL", "")
+API_TOKEN = os.getenv("GEMMA_API_TOKEN", "")
 
 # ------------------------------
 # 1. 데이터 로드 및 전처리
@@ -102,15 +106,17 @@ for category_name, required_clusters in target_clusters_per_category.items():
 # 5. GEMMA 응답 생성 함수 정의
 # ------------------------------
 def generate_gemma_answer(prompt: str) -> str:
+    if not API_URL or not API_TOKEN:
+        return "[Error: API_URL or GEMMA_API_TOKEN not set]"
     headers = {
-        'Authorization': 'z8y7x6w5v4.n1m2l3k4j5.Team4',
+        'Authorization': API_TOKEN,
         'Content-Type': 'application/json'
     }
     data = {
         'model': 'gemma3:12b',
         'messages': [{'role': 'user', 'content': prompt}]
     }
-    response = requests.post("http://hanyang-datascience.duckdns.org:5005/run", headers=headers, json=data)
+    response = requests.post(API_URL, headers=headers, json=data)
     if response.ok:
         return response.json().get('response', '[응답 없음]')
     return f"[Error {response.status_code}] {response.text}"

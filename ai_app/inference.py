@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Dict, List
 import numpy as np
 import pandas as pd
@@ -9,8 +10,8 @@ from collections import Counter
 from sklearn.cluster import HDBSCAN
 
 # --- Constants and Model Initialization ---
-API_URL = "http://hanyang-datascience.duckdns.org:5005/run"
-API_TOKEN = "z8y7x6w5v4.n1m2l3k4j5.Team4"
+API_URL = os.getenv("API_URL", "")
+API_TOKEN = os.getenv("GEMMA_API_TOKEN", "")
 MODEL_NAME = 'all-MiniLM-L6-v2'
 
 model = SentenceTransformer(MODEL_NAME)
@@ -46,6 +47,8 @@ doctor_answers_by_post_id = load_doctor_comments()
 
 # --- Gemma API Call ---
 def generate_gemma_answer(prompt: str) -> str:
+    if not API_TOKEN:
+        return "[Error: GEMMA_API_TOKEN not set]"
     headers = {
         'Authorization': API_TOKEN,
         'Content-Type': 'application/json'
@@ -72,6 +75,7 @@ def find_similar_posts(title: str, content: str, top_n: int = 3) -> List[str]:
     Returns:
         List[str]: 유사도가 높은 질문 ID 리스트
     """
+    print("Start func of find_similar_posts")
     if not title and not content:
         return []
 
@@ -82,17 +86,21 @@ def find_similar_posts(title: str, content: str, top_n: int = 3) -> List[str]:
     top_k = min(top_n, len(questions_df))
     top_indices = cosine_scores.topk(k=top_k)[1].cpu().tolist()
 
+    print("Done find similar_posts")
+
     return questions_df.iloc[top_indices]['id'].tolist()
 
 
 # --- AI Intern Answer Generation ---
 def generate_ai_intern_answer(post_id: str, title: str, content: str) -> Dict:
+    print("Start func of generate_ai_intern_answer")
     similar_ids = find_similar_posts(title, content)
     context = f"[질문 제목]: {title}\n[질문 내용]: {content}\n\n[유사 질문 및 전문의 답변 참고]\n"
     for sid in similar_ids:
         row = questions_df[questions_df['id'] == sid].iloc[0]
         context += f"\nQ: {row['title']}\nA: {doctor_answers_by_post_id.get(sid, ['(답변 없음)'])[0]}"
 
+    print("Run Prompt from generate_ai_intern_answer")
     prompt = f"""당신은 \"온누리마취통증의학과의원\"에서 근무 중인 AI 인턴입니다.  
 해당 병원은 마취통증의학과이며, 특히 측만증, 허리 통증, 자세 관련 치료에 전문성을 갖추고 있습니다.
 
@@ -114,6 +122,9 @@ def generate_ai_intern_answer(post_id: str, title: str, content: str) -> Dict:
 
 # --- Doctor Draft Answer ---
 def generate_doctor_draft(post_id: str, title: str, content: str, comments: List[Dict[str, str]]) -> Dict:
+
+    print("Start func of generate_doctor_draft")
+
     similar_ids = find_similar_posts(title, content)
 
     # 댓글 분류
@@ -147,6 +158,8 @@ def generate_doctor_draft(post_id: str, title: str, content: str, comments: List
         past_a = doctor_answers_by_post_id.get(sid, ['(답변 없음)'])[0]
         context += f"\n\nQ: {past_q}\nA: {past_a}"
 
+    print("Run Prompt from generate_doctor_draft")
+
     # 최종 프롬프트
     prompt = f"""너는 ‘온누리통증의원’의 김영환 원장이다.
 
@@ -170,6 +183,8 @@ def generate_doctor_draft(post_id: str, title: str, content: str, comments: List
 
 # --- FAQ Generation ---
 def generate_faqs_from_db() -> List[Dict[str, str]]:
+
+    print("Start func of generate_faqs_from_db")
     df = questions_df.copy()
     df['category'] = df['tag'].str.extract(r'\[(.*?)\]')
     df['keyword_raw'] = df['tag'].str.replace(r'\[.*?\]', '', regex=True).str.strip()
@@ -197,7 +212,7 @@ def generate_faqs_from_db() -> List[Dict[str, str]]:
 
         min_cluster_size, min_samples = 4, 2
         valid_clusters = []
-
+        print("Start clustering with HDBSCAN of", category_name)
         for _ in range(10):
             clusterer = HDBSCAN(metric='precomputed', min_cluster_size=min_cluster_size, min_samples=min_samples)
             labels = clusterer.fit_predict(cosine_dist)

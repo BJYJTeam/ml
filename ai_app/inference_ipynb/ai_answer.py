@@ -1,4 +1,5 @@
 from sentence_transformers import SentenceTransformer, util
+import os
 import torch
 import pandas as pd
 import json
@@ -8,6 +9,9 @@ import requests
 # input for doctor_answer : post_id, title, content, {comment_id, content, created_at, author}
 
 # output : post_id, content(comment_content), author, {similar_question_post_id}
+
+API_URL = os.getenv("API_URL", "")
+API_TOKEN = os.getenv("GEMMA_API_TOKEN", "")
 
 ### [1] 파일 불러오기
 questions_df = pd.read_csv("qa_DB_tag_json.csv")
@@ -36,22 +40,24 @@ def find_similar_posts(query_index, top_n=3):
 
 ### [5] GEMMA API 호출 함수
 def generate_gemma_answer(prompt: str) -> str:
+    if not API_URL or not API_TOKEN:
+        return "[Error: API_URL or GEMMA_API_TOKEN not set]"
     headers = {
-        'Authorization': 'z8y7x6w5v4.n1m2l3k4j5.Team4',
+        'Authorization': API_TOKEN,
         'Content-Type': 'application/json'
     }
     data = {
         'model': 'gemma3:12b',
         'messages': [{'role': 'user', 'content': prompt}]
     }
-    response = requests.post("http://hanyang-datascience.duckdns.org:5005/run", headers=headers, json=data)
+    response = requests.post(API_URL, headers=headers, json=data)
     if response.ok:
         return response.json().get('response', '[응답 없음]')
     return f"[Error {response.status_code}] {response.text}"
 
 ### [6] 전체 루프 실행 (3개만 테스트)
 drafts = []
-for i in range(3):  # ✅ 여기만 바뀜
+for i in range(3):
     question = questions_df.iloc[i]
     title = question['title']
     content = question['content']

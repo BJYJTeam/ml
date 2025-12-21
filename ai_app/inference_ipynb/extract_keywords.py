@@ -1,4 +1,5 @@
 import json
+import os
 import requests
 import pandas as pd
 from tqdm import tqdm
@@ -7,8 +8,8 @@ from tqdm import tqdm
 # output : post_id, {keywords}
 
 
-API_URL = "http://hanyang-datascience.duckdns.org:5005/run"
-API_TOKEN = "z8y7x6w5v4.n1m2l3k4j5.Team4"
+API_URL = os.getenv("API_URL", "")
+API_TOKEN = os.getenv("GEMMA_API_TOKEN", "")
 HEADERS = {
     'Authorization': API_TOKEN,
     'Content-Type': 'application/json'
@@ -48,6 +49,8 @@ PROMPT = """다음은 마취통증의학과 병원에 올라온 환자 또는 �
 """
 
 def generate_keywords_with_gemma(title, content):
+    if not API_URL or not API_TOKEN:
+        return "[Error: API_URL or GEMMA_API_TOKEN not set]"
     prompt = PROMPT.format(title=title, content=content)
     data = {
         'model': 'gemma3:12b',
