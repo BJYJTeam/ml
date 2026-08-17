@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="760" viewBox="0 0 1000 760">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#111"/>
+    </marker>
+    <style>
+      .box{fill:#fff;stroke:#111;stroke-width:3;rx:18;ry:18}
+      .txt{font:700 24px Arial,Helvetica,sans-serif;fill:#111;text-anchor:middle}
+      .sub{font:500 22px Arial,Helvetica,sans-serif;fill:#111;text-anchor:middle}
+      .line{stroke:#111;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+
+  <rect width="1000" height="760" fill="#fff"/>
+
+  <text x="500" y="48" class="txt">FAQ Batch Pipeline</text>
+
+  <rect x="70" y="95" width="330" height="110" class="box"/>
+  <text x="235" y="140" class="sub">상담 데이터와 의료진 답변</text>
+  <text x="235" y="177" class="sub">카테고리별 수집</text>
+
+  <rect x="70" y="265" width="330" height="110" class="box"/>
+  <text x="235" y="310" class="sub">Gemma 3 키워드·카테고리</text>
+  <text x="235" y="347" class="sub">추출</text>
+
+  <rect x="70" y="435" width="330" height="110" class="box"/>
+  <text x="235" y="480" class="sub">E5 임베딩</text>
+  <text x="235" y="517" class="sub">제목 + 정제된 키워드</text>
+
+  <rect x="70" y="605" width="330" height="110" class="box"/>
+  <text x="235" y="650" class="sub">카테고리별 clustering</text>
+  <text x="235" y="687" class="txt">HDBSCAN leaf · noise 제외</text>
+
+  <rect x="600" y="180" width="330" height="110" class="box"/>
+  <text x="765" y="225" class="sub">cluster별 대표 Q&amp;A</text>
+  <text x="765" y="262" class="sub">최대 3건 선별</text>
+
+  <rect x="600" y="350" width="330" height="110" class="box"/>
+  <text x="765" y="395" class="sub">Gemma 3 FAQ 초안 생성</text>
+  <text x="765" y="432" class="sub">여러 Q&amp;A를 함께 참고</text>
+
+  <rect x="600" y="520" width="330" height="110" class="box"/>
+  <text x="765" y="565" class="sub">pending_review</text>
+  <text x="765" y="602" class="sub">의료진 검토 및 승인</text>
+
+  <rect x="600" y="670" width="330" height="55" class="box"/>
+  <text x="765" y="705" class="txt">approved FAQ 공개</text>
+
+  <path d="M235 205 L235 265" class="line"/>
+  <path d="M235 375 L235 435" class="line"/>
+  <path d="M235 545 L235 605" class="line"/>
+  <path d="M400 660 L500 660 L500 235 L600 235" class="line"/>
+  <path d="M765 290 L765 350" class="line"/>
+  <path d="M765 460 L765 520" class="line"/>
+  <path d="M765 630 L765 670" class="line"/>
+</svg>

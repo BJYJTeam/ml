@@ -3,12 +3,18 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
+from .faq import load_approved_faqs
 from .inference import (
-    generate_faqs_from_db,
     generate_doctor_draft,
     extract_keywords,
     generate_ai_intern_answer,
     find_similar_posts,
+)
+from .llm import LLMError
+from .serializers import (
+    DoctorDraftSerializer,
+    ImageRecommendationSerializer,
+    MedicalQuestionSerializer,
 )
 
 
@@ -60,12 +66,15 @@ def similar_posts_view(request):
     """
     주어진 질문 제목과 본문을 기반으로 유사한 기존 질문 ID 리스트를 반환합니다.
     """
-    data = request.data
-    post_id = data.get("post_id")
-    title = data.get("title", "")
-    content = data.get("content", "")
+    serializer = MedicalQuestionSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+    data = serializer.validated_data
+    post_id = data["post_id"]
+    title = data["title"]
+    content = data["content"]
 
-    similar_ids = find_similar_posts(title, content)
+    similar_ids = find_similar_posts(title, content, exclude_post_id=post_id)
     return Response({
         "post_id": post_id,
         "similar_post_ids": similar_ids
@@ -105,9 +114,14 @@ def similar_posts_view(request):
 )
 @api_view(['POST'])
 def ai_answer_view(request):
-    data = request.data
-    result = generate_ai_intern_answer(data['post_id'], data['title'], data['content'])
-    return Response(result)
+    serializer = MedicalQuestionSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+    try:
+        result = generate_ai_intern_answer(**serializer.validated_data)
+        return Response(result)
+    except LLMError:
+        return Response({"error": "AI generation is temporarily unavailable."}, status=503)
 
 
 @swagger_auto_schema(
@@ -165,13 +179,14 @@ def ai_answer_view(request):
 )
 @api_view(['POST'])
 def doctor_draft_view(request):
-    data = request.data
-    post_id = data['post_id']
-    title = data['title']
-    content = data['content']
-    comments = data['comments']
-    result = generate_doctor_draft(post_id, title, content, comments)
-    return Response(result)
+    serializer = DoctorDraftSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+    try:
+        result = generate_doctor_draft(**serializer.validated_data)
+        return Response(result)
+    except LLMError:
+        return Response({"error": "AI generation is temporarily unavailable."}, status=503)
 
 
 @swagger_auto_schema(
@@ -217,9 +232,14 @@ def doctor_draft_view(request):
 )
 @api_view(['POST'])
 def keyword_extraction_view(request):
-    data = request.data
-    result = extract_keywords(data['post_id'], data['title'], data['content'])
-    return Response(result)
+    serializer = MedicalQuestionSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+    try:
+        result = extract_keywords(**serializer.validated_data)
+        return Response(result)
+    except LLMError:
+        return Response({"error": "AI generation is temporarily unavailable."}, status=503)
 
 
 @swagger_auto_schema(
@@ -270,10 +290,10 @@ def faq_list_view(request):
     클러스터링 기반으로 추출된 대표 질문/답변 FAQ 리스트 반환
     """
     try:
-        faqs = generate_faqs_from_db()
+        faqs = load_approved_faqs()
         return Response(faqs, status=200)
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+    except Exception:
+        return Response({"error": "Unable to load approved FAQ drafts."}, status=500)
 
 
 @swagger_auto_schema(
@@ -310,10 +330,10 @@ def faq_list_view(request):
 )
 @api_view(['POST'])
 def recommend_images(request):
-    content = request.data.get("content", "")
-    if not content:
-        return Response({"error": "content is required"}, status=400)
+    serializer = ImageRecommendationSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
 
     from .inference import recommend_images_by_question
-    results = recommend_images_by_question(content)
+    results = recommend_images_by_question(serializer.validated_data["content"])
     return Response({"results": results})

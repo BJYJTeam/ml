@@ -1,38 +1,59 @@
 import json
-import os
+from functools import lru_cache
+from pathlib import Path
 from typing import Dict, List
 import numpy as np
 import pandas as pd
-import requests
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-from collections import Counter
-from sklearn.cluster import HDBSCAN
+
+from ai_app.faq import load_approved_faqs
+from ai_app.infrastructure.embeddings import SentenceTransformerEncoder
+from ai_app.llm import generate_gemma_answer
+from ai_app.retrieval import QuestionDocument, SemanticRetriever
 
 # --- Constants and Model Initialization ---
-API_URL = os.getenv("API_URL", "")
-API_TOKEN = os.getenv("GEMMA_API_TOKEN", "")
+BASE_DIR = Path(__file__).resolve().parent.parent
+DOCS_DIR = BASE_DIR / "docs"
 MODEL_NAME = 'all-MiniLM-L6-v2'
-
-model = SentenceTransformer(MODEL_NAME)
-
+RETRIEVAL_MODEL_NAME = 'intfloat/multilingual-e5-small'
+RETRIEVAL_MIN_SCORE = 0.9
 
 # --- Load QA Data and Preprocess ---
+@lru_cache(maxsize=1)
 def load_qa_dataframe() -> pd.DataFrame:
-    df = pd.read_csv("docs/qa_DB_tag_json.csv")
+    df = pd.read_csv(DOCS_DIR / "qa_DB_tag_json.csv")
     df = df[df['content'].notna() & ~df['content'].str.lower().str.contains('content not found')]
     df["title"] = df["title"].fillna("")
     df["id"] = df["id"].astype(str)
     return df
 
 
-questions_df = load_qa_dataframe()
-question_embeddings = model.encode(questions_df["title"].tolist(), convert_to_tensor=True)
+@lru_cache(maxsize=1)
+def get_retrieval_encoder() -> SentenceTransformerEncoder:
+    return SentenceTransformerEncoder(
+        RETRIEVAL_MODEL_NAME,
+        query_prefix="query: ",
+        document_prefix="passage: ",
+    )
+
+
+@lru_cache(maxsize=1)
+def get_question_retriever() -> SemanticRetriever:
+    questions = load_qa_dataframe()
+    return SemanticRetriever(
+        [
+            QuestionDocument(row.id, row.title, row.content)
+            for row in questions.itertuples(index=False)
+        ],
+        get_retrieval_encoder(),
+    )
 
 
 # --- Load Doctor Comments ---
+@lru_cache(maxsize=1)
 def load_doctor_comments() -> Dict[str, List[str]]:
-    with open("docs/post_comments.json", "r", encoding="utf-8") as f:
+    with (DOCS_DIR / "post_comments.json").open(encoding="utf-8") as f:
         comments = json.load(f)
 
     answers = {}
@@ -42,28 +63,13 @@ def load_doctor_comments() -> Dict[str, List[str]]:
     return answers
 
 
-doctor_answers_by_post_id = load_doctor_comments()
-
-
-# --- Gemma API Call ---
-def generate_gemma_answer(prompt: str) -> str:
-    if not API_TOKEN:
-        return "[Error: GEMMA_API_TOKEN not set]"
-    headers = {
-        'Authorization': API_TOKEN,
-        'Content-Type': 'application/json'
-    }
-    data = {
-        'model': 'gemma3:12b',
-        'messages': [{'role': 'user', 'content': prompt}]
-    }
-    response = requests.post(API_URL, headers=headers, json=data)
-    return response.json().get('response',
-                               '[응답 없음]') if response.ok else f"[Error {response.status_code}] {response.text}"
-
-
 # --- Find Similar Posts ---
-def find_similar_posts(title: str, content: str, top_n: int = 3) -> List[str]:
+def find_similar_posts(
+    title: str,
+    content: str,
+    top_n: int = 3,
+    exclude_post_id: str | None = None,
+) -> List[str]:
     """
     주어진 제목과 본문을 기반으로 가장 유사한 기존 질문 post_id 리스트를 반환합니다.
 
@@ -79,26 +85,29 @@ def find_similar_posts(title: str, content: str, top_n: int = 3) -> List[str]:
     if not title and not content:
         return []
 
-    query = f"{title.strip()}\n{content.strip()}"
-    query_embedding = model.encode([query], convert_to_tensor=True)
-
-    cosine_scores = util.cos_sim(query_embedding, question_embeddings)[0]
-    top_k = min(top_n, len(questions_df))
-    top_indices = cosine_scores.topk(k=top_k)[1].cpu().tolist()
-
     print("Done find similar_posts")
-
-    return questions_df.iloc[top_indices]['id'].tolist()
+    return [
+        result.post_id
+        for result in get_question_retriever().search(
+            title,
+            content,
+            exclude_post_id=exclude_post_id,
+            top_k=top_n,
+            min_score=RETRIEVAL_MIN_SCORE,
+        )
+    ]
 
 
 # --- AI Intern Answer Generation ---
 def generate_ai_intern_answer(post_id: str, title: str, content: str) -> Dict:
     print("Start func of generate_ai_intern_answer")
-    similar_ids = find_similar_posts(title, content)
+    similar_ids = find_similar_posts(title, content, exclude_post_id=post_id)
+    questions = load_qa_dataframe()
+    doctor_answers = load_doctor_comments()
     context = f"[질문 제목]: {title}\n[질문 내용]: {content}\n\n[유사 질문 및 전문의 답변 참고]\n"
     for sid in similar_ids:
-        row = questions_df[questions_df['id'] == sid].iloc[0]
-        context += f"\nQ: {row['title']}\nA: {doctor_answers_by_post_id.get(sid, ['(답변 없음)'])[0]}"
+        row = questions[questions['id'] == sid].iloc[0]
+        context += f"\nQ: {row['title']}\nA: {doctor_answers.get(sid, ['(답변 없음)'])[0]}"
 
     print("Run Prompt from generate_ai_intern_answer")
     prompt = f"""당신은 \"온누리마취통증의학과의원\"에서 근무 중인 AI 인턴입니다.  
@@ -125,7 +134,9 @@ def generate_doctor_draft(post_id: str, title: str, content: str, comments: List
 
     print("Start func of generate_doctor_draft")
 
-    similar_ids = find_similar_posts(title, content)
+    similar_ids = find_similar_posts(title, content, exclude_post_id=post_id)
+    questions = load_qa_dataframe()
+    doctor_answers = load_doctor_comments()
 
     # 댓글 분류
     ai_answer = ""
@@ -153,9 +164,9 @@ def generate_doctor_draft(post_id: str, title: str, content: str, comments: List
     # 유사 Q&A 추가
     context += "\n[참고할 기존 Q&A 목록]"
     for sid in similar_ids:
-        row = questions_df[questions_df['id'] == sid].iloc[0]
+        row = questions[questions['id'] == sid].iloc[0]
         past_q = row['title']
-        past_a = doctor_answers_by_post_id.get(sid, ['(답변 없음)'])[0]
+        past_a = doctor_answers.get(sid, ['(답변 없음)'])[0]
         context += f"\n\nQ: {past_q}\nA: {past_a}"
 
     print("Run Prompt from generate_doctor_draft")
@@ -181,108 +192,9 @@ def generate_doctor_draft(post_id: str, title: str, content: str, comments: List
     return {"post_id": post_id, "content": generate_gemma_answer(prompt).strip()}
 
 
-# --- FAQ Generation ---
+# --- FAQ Storage Facade ---
 def generate_faqs_from_db() -> List[Dict[str, str]]:
-
-    print("Start func of generate_faqs_from_db")
-    df = questions_df.copy()
-    df['category'] = df['tag'].str.extract(r'\[(.*?)\]')
-    df['keyword_raw'] = df['tag'].str.replace(r'\[.*?\]', '', regex=True).str.strip()
-    df['keyword_list'] = df['keyword_raw'].str.split(r'[\s,]+')
-    df['keyword_str'] = df['keyword_list'].apply(lambda x: ' '.join(x))
-
-    target_clusters_per_category = {
-        "증상 및 진단 문의": 4,
-        "치료 및 시술 문의": 1,
-        "예약, 진료, 비용 문의": 1,
-        "생활관리 및 기타 문의": 1
-    }
-
-    faq_results = []
-
-    for category_name, required_clusters in target_clusters_per_category.items():
-        sub_df = df[df['category'] == category_name].copy().reset_index(drop=True)
-        if len(sub_df) < 5:
-            continue
-
-        sub_df['full_text'] = sub_df['keyword_str'] + " " + sub_df['content']
-        texts = sub_df['full_text'].tolist()
-        embeddings = model.encode(texts)
-        cosine_dist = (1 - cosine_similarity(embeddings)).astype(np.float64)
-
-        min_cluster_size, min_samples = 4, 2
-        valid_clusters = []
-        print("Start clustering with HDBSCAN of", category_name)
-        for _ in range(10):
-            clusterer = HDBSCAN(metric='precomputed', min_cluster_size=min_cluster_size, min_samples=min_samples)
-            labels = clusterer.fit_predict(cosine_dist)
-            sub_df['cluster'] = labels
-            label_counts = Counter(labels)
-            valid_clusters = [label for label in label_counts if label != -1]
-            if len(valid_clusters) >= required_clusters:
-                break
-            min_cluster_size = max(2, min_cluster_size - 1)
-
-        used_cluster_count = 0
-        for cluster_id in sorted(valid_clusters, key=lambda x: label_counts[x], reverse=True):
-            if used_cluster_count >= required_clusters:
-                break
-
-            cluster_df = sub_df[sub_df['cluster'] == cluster_id].reset_index(drop=True)
-            if cluster_df.empty:
-                continue
-
-            cluster_embeddings = model.encode(cluster_df['full_text'].tolist())
-            sim_matrix = cosine_similarity(cluster_embeddings)
-            avg_similarities = (sim_matrix.sum(axis=1) - 1) / (len(sim_matrix) - 1)
-            top_indices = np.argsort(avg_similarities)[-5:][::-1]
-
-            questions_text = "\n".join([
-                f"- 제목: {cluster_df.iloc[i]['title']}\n  질문: {cluster_df.iloc[i]['content']}"
-                for i in top_indices
-            ])
-
-            representative_row = cluster_df.iloc[top_indices[0]]
-            post_id = representative_row['id']
-            doctor_reply = doctor_answers_by_post_id.get(post_id, ["(의사 답변 없음)"])[0]
-
-            prompt = f"""[FAQ 생성 요청]
-당신은 \"온누리마취통증의학과의원\"의 AI 인턴입니다.
-다음은 \"{category_name}\" 카테고리의 대표 질문들이며, 실제 전문의 답변도 함께 제공됩니다.
-
-[대표 질문들]
-{questions_text}
-
-[전문의 답변]
-{doctor_reply}
-
-위 질문들과 전문의 답변을 참고하여, FAQ 형식의 요약 질문/답변을 각각 1회씩 작성해주세요.
-
-[출력 목적]
-- 환자들이 자주 묻는 질문을 이해하고, 빠르게 답변을 확인할 수 있도록 합니다.
-
-[출력 기준]
-1. 질문은 반드시 **의문문**으로 한 문장으로 작성하세요.
-2. 답변은 너무 길지 않게, 핵심만 담아 **간결하게** 작성하세요.
-3. 중복되거나 불필요한 표현은 제거해주세요.
-
-[출력 형식]
-Q: 질문 내용
-A: 답변 내용"""
-
-            answer = generate_gemma_answer(prompt)
-            lines = answer.split('\n')
-            q_line = next((line for line in lines if "Q:" in line), "").strip()
-            a_line = next((line for line in lines if "A:" in line), "").strip()
-
-            faq_results.append({
-                "content": q_line.replace("Q:", "").strip(),
-                "answer": a_line.replace("A:", "").strip()
-            })
-
-            used_cluster_count += 1
-
-    return faq_results
+    return load_approved_faqs()
 
 
 # --- Keyword Extraction ---
@@ -319,15 +231,25 @@ def extract_keywords(post_id: str, title: str, content: str) -> Dict:
 
 
 # --- Image Recommendation ---
-with open("docs/medical_metadata.json", "r") as f:
-    image_metadata = json.load(f)
+@lru_cache(maxsize=1)
+def get_image_model() -> SentenceTransformer:
+    return SentenceTransformer(MODEL_NAME)
 
-image_descriptions = [item["description"] for item in image_metadata]
-image_embeddings = model.encode(image_descriptions, convert_to_tensor=True).cpu()
+
+@lru_cache(maxsize=1)
+def get_image_resources() -> tuple[List[Dict], object]:
+    with (DOCS_DIR / "medical_metadata.json").open(encoding="utf-8") as f:
+        image_metadata = json.load(f)
+    image_descriptions = [item["description"] for item in image_metadata]
+    image_embeddings = get_image_model().encode(
+        image_descriptions, convert_to_tensor=True
+    ).cpu()
+    return image_metadata, image_embeddings
 
 
 def recommend_images_by_question(content: str, top_k: int = 5) -> List[Dict]:
-    query_embedding = model.encode([content], convert_to_tensor=True).cpu()
+    image_metadata, image_embeddings = get_image_resources()
+    query_embedding = get_image_model().encode([content], convert_to_tensor=True).cpu()
     similarities = cosine_similarity(query_embedding, image_embeddings)[0]
     top_indices = similarities.argsort()[::-1][:top_k]
     return [image_metadata[i] for i in top_indices]

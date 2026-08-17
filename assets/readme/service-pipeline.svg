@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1100" viewBox="0 0 1200 1100">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,6 L0,12 z" fill="#222"/>
+    </marker>
+    <style>
+      .title { font: 700 34px Arial, Helvetica, sans-serif; fill:#111; }
+      .box-title { font: 700 22px Arial, Helvetica, sans-serif; fill:#111; }
+      .box-sub { font: 400 18px Arial, Helvetica, sans-serif; fill:#333; }
+      .box { fill:#fff; stroke:#222; stroke-width:3; rx:18; ry:18; }
+      .soft { fill:#fafafa; stroke:#222; stroke-width:2.5; rx:16; ry:16; }
+      .line { stroke:#222; stroke-width:3; fill:none; marker-end:url(#arrow); }
+      .branch { stroke:#222; stroke-width:3; fill:none; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="1100" fill="#fff"/>
+
+  <text x="600" y="60" text-anchor="middle" class="title">AI/ML Answer and Review Pipeline</text>
+
+  <rect x="400" y="105" width="400" height="85" class="box"/>
+  <text x="600" y="140" text-anchor="middle" class="box-title">새 의료 상담 질문</text>
+  <text x="600" y="168" text-anchor="middle" class="box-sub">title + content</text>
+
+  <path d="M600 190 L600 235" class="line"/>
+
+  <rect x="400" y="235" width="400" height="100" class="soft"/>
+  <text x="600" y="275" text-anchor="middle" class="box-title">Semantic Retrieval</text>
+  <text x="600" y="305" text-anchor="middle" class="box-sub">E5 embedding + cosine similarity</text>
+
+  <path d="M600 335 L600 380" class="line"/>
+
+  <rect x="365" y="380" width="470" height="100" class="soft"/>
+  <text x="600" y="420" text-anchor="middle" class="box-title">최대 Top-3 유사 Q&amp;A와 의료진 답변</text>
+  <text x="600" y="450" text-anchor="middle" class="box-sub">threshold를 통과한 상담 이력만 사용</text>
+
+  <path d="M600 480 L600 525" class="line"/>
+
+  <rect x="385" y="525" width="430" height="100" class="box"/>
+  <text x="600" y="565" text-anchor="middle" class="box-title">Context Construction</text>
+  <text x="600" y="595" text-anchor="middle" class="box-sub">새 질문 + 검색된 상담 이력</text>
+
+  <path d="M600 625 L600 670" class="line"/>
+
+  <rect x="400" y="670" width="400" height="95" class="box"/>
+  <text x="600" y="709" text-anchor="middle" class="box-title">Gemma 3 API</text>
+  <text x="600" y="739" text-anchor="middle" class="box-sub">AI 답변 생성</text>
+
+  <path d="M600 765 L600 810" class="line"/>
+
+  <rect x="400" y="810" width="400" height="85" class="box"/>
+  <text x="600" y="845" text-anchor="middle" class="box-title">AI 답변과 사용자 피드백</text>
+  <text x="600" y="873" text-anchor="middle" class="box-sub">추가 문의 또는 보완 요청</text>
+
+  <path d="M600 895 L600 925" class="branch"/>
+  <path d="M600 925 L280 925" class="branch"/>
+  <path d="M600 925 L900 925" class="branch"/>
+  <path d="M280 925 L280 960" class="line"/>
+  <path d="M900 925 L900 960" class="line"/>
+
+  <rect x="100" y="960" width="360" height="90" class="soft"/>
+  <text x="280" y="998" text-anchor="middle" class="box-title">답변 흐름 종료</text>
+  <text x="280" y="1026" text-anchor="middle" class="box-sub">추가 답변 요청 없음</text>
+
+  <rect x="690" y="960" width="420" height="90" class="soft"/>
+  <text x="900" y="998" text-anchor="middle" class="box-title">의료진 검토 지원</text>
+  <text x="900" y="1026" text-anchor="middle" class="box-sub">유사 Q&amp;A 기반 답변 초안 생성 요청</text>
+</svg>

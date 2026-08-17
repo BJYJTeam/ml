@@ -1,0 +1,81 @@
+{
+  "benchmark_id": "retrieval-benchmark-v1",
+  "recorded_at": "2026-08-17",
+  "validation_dataset": "docs/validation/retrieval-relevance-v1.json",
+  "corpus": {
+    "path": "docs/qa_DB_tag_json.csv",
+    "n_usable_documents": 174
+  },
+  "validation": {
+    "n_queries": 44,
+    "n_queries_with_relevance_judgments": 40,
+    "n_no_match_queries": 4,
+    "review_scope": "repository-content-review",
+    "clinical_review_completed": false
+  },
+  "selection_criterion": "Select the threshold that maximizes the mean of Top-3 recall and no-match specificity, then select the model with the highest resulting balanced score.",
+  "candidates": [
+    {
+      "name": "all-minilm-l6-v2",
+      "model_name": "all-MiniLM-L6-v2",
+      "query_prefix": "",
+      "document_prefix": "",
+      "initialization_and_index_seconds": 17.702985083917156,
+      "unthresholded_metrics": {
+        "top_1_recall": 0.05,
+        "top_3_recall": 0.2
+      },
+      "selected_threshold": 0.8,
+      "metrics_at_selected_threshold": {
+        "top_1_recall": 0.05,
+        "top_3_recall": 0.2,
+        "no_match_specificity": 0.75,
+        "balanced_score": 0.475
+      }
+    },
+    {
+      "name": "kr-sbert-v40k",
+      "model_name": "snunlp/KR-SBERT-V40K-klueNLI-augSTS",
+      "query_prefix": "",
+      "document_prefix": "",
+      "initialization_and_index_seconds": 46.001551291090436,
+      "unthresholded_metrics": {
+        "top_1_recall": 0.425,
+        "top_3_recall": 0.675
+      },
+      "selected_threshold": 0.7,
+      "metrics_at_selected_threshold": {
+        "top_1_recall": 0.375,
+        "top_3_recall": 0.575,
+        "no_match_specificity": 1.0,
+        "balanced_score": 0.7875
+      }
+    },
+    {
+      "name": "multilingual-e5-small",
+      "model_name": "intfloat/multilingual-e5-small",
+      "query_prefix": "query: ",
+      "document_prefix": "passage: ",
+      "initialization_and_index_seconds": 51.09127666603308,
+      "unthresholded_metrics": {
+        "top_1_recall": 0.625,
+        "top_3_recall": 0.75
+      },
+      "selected_threshold": 0.9,
+      "metrics_at_selected_threshold": {
+        "top_1_recall": 0.575,
+        "top_3_recall": 0.7,
+        "no_match_specificity": 1.0,
+        "balanced_score": 0.85
+      }
+    }
+  ],
+  "selected_model": {
+    "model_name": "intfloat/multilingual-e5-small",
+    "query_prefix": "query: ",
+    "document_prefix": "passage: ",
+    "similarity_threshold": 0.9,
+    "decision": "Selected because it has the highest unthresholded Top-1 and Top-3 recall and the highest balanced score after threshold selection. The longer startup and indexing time is acceptable for the current 174-document corpus because indexing occurs during service initialization."
+  },
+  "reproduce_command": "python manage.py benchmark_retrieval_models --output docs/validation/retrieval-benchmark-v1.json"
+}

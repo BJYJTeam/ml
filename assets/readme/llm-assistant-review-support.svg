@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1120" viewBox="0 0 720 1120">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#111"/>
+    </marker>
+    <style>
+      .title{font:700 34px Arial,Helvetica,sans-serif;fill:#111;text-anchor:middle}
+      .box{fill:#fff;stroke:#111;stroke-width:4;rx:18;ry:18}
+      .txt{font:700 25px Arial,Helvetica,sans-serif;fill:#111;text-anchor:middle}
+      .sub{font:500 22px Arial,Helvetica,sans-serif;fill:#111;text-anchor:middle}
+      .line{stroke:#111;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+
+  <rect width="720" height="1120" fill="#fff"/>
+
+  <text x="360" y="55" class="title">LLM Assistant Review Support</text>
+
+  <rect x="90" y="115" width="540" height="120" class="box"/>
+  <text x="360" y="160" class="txt">질문 + AI 답변 + 사용자 피드백</text>
+  <text x="360" y="198" class="sub">추가 문의 또는 보완 요청</text>
+
+  <rect x="90" y="300" width="540" height="120" class="box"/>
+  <text x="360" y="345" class="txt">E5 유사 Q&amp;A 검색</text>
+  <text x="360" y="383" class="sub">threshold를 통과한 최대 Top-3 결과</text>
+
+  <rect x="90" y="485" width="540" height="120" class="box"/>
+  <text x="360" y="530" class="txt">답변 초안용 context 구성</text>
+  <text x="360" y="568" class="sub">기존 의료진 답변을 함께 반영</text>
+
+  <rect x="90" y="670" width="540" height="120" class="box"/>
+  <text x="360" y="715" class="txt">Gemma 3 검토용 답변 초안</text>
+  <text x="360" y="753" class="sub">생성</text>
+
+  <rect x="90" y="855" width="540" height="100" class="box"/>
+  <text x="360" y="915" class="txt">의료진 검토 및 수정</text>
+
+  <rect x="90" y="1020" width="540" height="70" class="box"/>
+  <text x="360" y="1063" class="txt">최종 답변</text>
+
+  <path d="M360 235 L360 300" class="line"/>
+  <path d="M360 420 L360 485" class="line"/>
+  <path d="M360 605 L360 670" class="line"/>
+  <path d="M360 790 L360 855" class="line"/>
+  <path d="M360 955 L360 1020" class="line"/>
+</svg>

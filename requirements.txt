@@ -108,6 +108,9 @@ python-multipart==0.0.20
 pytorch-lightning==2.5.1.post0
 pytorch-metric-learning==2.8.1
 pytz==2025.2
+pytest==8.3.5
+pytest-cov==6.1.1
+pytest-django==4.11.1
 PyYAML==6.0.2
 pyzmq==26.4.0
 regex==2024.11.6

@@ -1,0 +1,10 @@
+[
+  {
+    "query_id": "example-001",
+    "title": "Redacted question title",
+    "content": "Redacted question content",
+    "relevant_post_ids": ["historical-post-id"],
+    "reviewer": "medical-reviewer",
+    "reviewed_at": "2026-08-17"
+  }
+]

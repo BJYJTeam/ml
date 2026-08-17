@@ -20,3 +20,7 @@ staticfiles/
 
 # Byte-compiled files
 *.pyo
+
+# Test coverage
+.coverage
+htmlcov/
