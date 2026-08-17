@@ -183,32 +183,38 @@ Image recommendation에는 `all-MiniLM-L6-v2`를 사용합니다.
     <td align="center" width="190px">
       <a href="https://github.com/Nutriatree"><img height="104px" width="104px" src="https://avatars.githubusercontent.com/Nutriatree" alt="Nutriatree" /></a>
       <br />
-      <a href="https://github.com/Nutriatree"><strong>Jiwoo Park</strong></a>
+      <a href="https://github.com/Nutriatree"><strong>박지우</strong></a>
+      <br />
+      <strong>Contribution Area</strong>
       <br />
       AI Pipeline · Model & Method Design
     </td>
     <td align="center" width="190px">
       <a href="https://github.com/alicek0"><img height="104px" width="104px" src="https://avatars.githubusercontent.com/alicek0" alt="alicek0" /></a>
       <br />
-      <a href="https://github.com/alicek0"><strong>alicek0</strong></a>
+      <a href="https://github.com/alicek0"><strong>강민경</strong></a>
+      <br />
+      <strong>Contribution Area</strong>
       <br />
       Data Pipeline · Service Integration
-      <br /><br />
-      <strong>Contribution Area</strong>
       <br />
       Data Collection · Data Preprocessing
     </td>
     <td align="center" width="190px">
       <a href="https://github.com/banseok1216"><img height="104px" width="104px" src="https://avatars.githubusercontent.com/banseok1216" alt="banseok1216" /></a>
       <br />
-      <a href="https://github.com/banseok1216"><strong>banseok1216</strong></a>
+      <a href="https://github.com/banseok1216"><strong>김반석</strong></a>
+      <br />
+      <strong>Contribution Area</strong>
       <br />
       Runtime · Deployment Configuration
     </td>
     <td align="center" width="190px">
       <a href="https://github.com/TaeheeKk"><img height="104px" width="104px" src="https://avatars.githubusercontent.com/TaeheeKk" alt="TaeheeKk" /></a>
       <br />
-      <a href="https://github.com/TaeheeKk"><strong>TaeheeKk</strong></a>
+      <a href="https://github.com/TaeheeKk"><strong>김태희</strong></a>
+      <br />
+      <strong>Contribution Area</strong>
       <br />
       Initial AI Pipeline · Prototyping
     </td>
