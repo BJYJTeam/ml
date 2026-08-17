@@ -181,13 +181,6 @@ Image recommendation에는 `all-MiniLM-L6-v2`를 사용합니다.
 <table>
   <tr height="155px">
     <td align="center" width="190px">
-      <a href="https://github.com/Nutriatree"><img height="104px" width="104px" src="https://avatars.githubusercontent.com/Nutriatree" alt="Nutriatree" /></a>
-      <br />
-      <a href="https://github.com/Nutriatree"><strong>박지우</strong></a>
-      <br />
-      AI Pipeline
-    </td>
-    <td align="center" width="190px">
       <a href="https://github.com/alicek0"><img height="104px" width="104px" src="https://avatars.githubusercontent.com/alicek0" alt="alicek0" /></a>
       <br />
       <a href="https://github.com/alicek0"><strong>강민경</strong></a>
@@ -208,12 +201,19 @@ Image recommendation에는 `all-MiniLM-L6-v2`를 사용합니다.
       <br />
       AI Prototyping
     </td>
+    <td align="center" width="190px">
+      <a href="https://github.com/Nutriatree"><img height="104px" width="104px" src="https://avatars.githubusercontent.com/Nutriatree" alt="Nutriatree" /></a>
+      <br />
+      <a href="https://github.com/Nutriatree"><strong>박지우</strong></a>
+      <br />
+      AI Pipeline
+    </td>
   </tr>
 </table>
 
 | Developer | Contribution Area |
 | --- | --- |
-| 박지우 | AI Pipeline · Model & Method Design |
 | 강민경 | Data Collection · Data Preprocessing · Service Integration |
 | 김반석 | Runtime · Deployment Configuration |
 | 김태희 | Initial AI Pipeline · Prototyping |
+| 박지우 | AI Pipeline · Model & Method Design |
